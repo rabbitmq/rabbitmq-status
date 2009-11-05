@@ -87,7 +87,9 @@ handle_request(Req) ->
                             RConns, RQueues, 
                             ProcUsed, ProcTotal, ProcWarn, 
                             FdUsed, FdTotal, FdWarn, 
-                            MemUsed, MemTotal, MemWarn]),
+                            status_render:format_info(memory, MemUsed), 
+			    status_render:format_info(memory, MemTotal),
+			    MemWarn]),
     Resp1 = lists:map(fun (A) -> status_render:binaryse_widget(A) end, Resp0),
     Resp2 = lists:flatten(Resp1),
     Req:respond({200, [
@@ -121,8 +123,8 @@ get_used_fd(_) ->
 
 %% vm_memory_monitor is available from RabbitMQ 1.7.1
 get_total_memory() ->
-    case catch apply(vm_memory_monitor, get_vm_memory_high_watermark, []) * 
-          apply(vm_memory_monitor, get_total_memory, []) of
+    case catch vm_memory_monitor:get_vm_memory_high_watermark() * 
+		vm_memory_monitor:get_total_memory() of
 	{'EXIT', _} -> unknown;
         B -> B
     end.

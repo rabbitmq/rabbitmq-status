@@ -46,7 +46,7 @@
  <tr><td><label>binded to = </label><% BindedTo %> </td></tr>
  <tr class="<% FdWarn %>"><td><label>file descriptors (used/available)= </label><% FdUsed %> / <% FdTotal %> </td></tr>
  <tr class="<% ProcWarn %>"><td><label>erlang processes (used/available) = </label><% ProcUsed %> / <% ProcTotal %> </td></tr>
- <tr class="<% MemWarn %>"><td><label>memory (used/available) = </label><% trunc(MemUsed/1024/1024) %>MB  / <% trunc(MemTotal/1024/1024) %>MB </td></tr>
+ <tr class="<% MemWarn %>"><td><label>memory (used/available) = </label><% MemUsed %> / <% MemTotal %> </td></tr>
  <tr><td><label>ets memory = </label><% trunc(erlang:memory(ets) /1024/1024) %>MB </td></tr>
  <tr><td><label>binary memory = </label><% trunc(erlang:memory(binary) /1024/1024) %>MB </td></tr>
 </table>
