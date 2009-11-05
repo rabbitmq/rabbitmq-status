@@ -121,10 +121,10 @@ get_used_fd(_) ->
 
 %% vm_memory_monitor is available from RabbitMQ 1.7.1
 get_total_memory() ->
-    try vm_memory_monitor:get_vm_memory_high_watermark() * 
-                            vm_memory_monitor:get_total_memory()
-    catch
-        _ -> unknown
+    case catch apply(vm_memory_monitor, get_vm_memory_high_watermark, []) * 
+          apply(vm_memory_monitor, get_total_memory, []) of
+	{'EXIT', _} -> unknown;
+        B -> B
     end.
     
 get_warning_level(Used, Total) ->
