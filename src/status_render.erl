@@ -70,9 +70,7 @@ format_info(Key, Value) ->
             inet_parse:ntoa(Value);
         Value when Key =:= recv_oct; Key =:= send_oct; Key =:= memory;
                     Key =:= send_pend ->
-            if Value >= 1073741824 -> print("~pGB", [trunc(Value/1073741824)]);
-               true                -> print("~pMB", [trunc(Value/1048576)])
-            end;
+            print("~pMB", [trunc(Value/1048576)]);
         Value when is_pid(Value) ->
             atom_to_list(node(Value));
         Value when is_binary(Value) -> 

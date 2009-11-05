@@ -19,6 +19,7 @@
 -record(state, {
         time_ms,
         datetime,
+        binded_to,
         connections,
         queues,
         fd_used,
@@ -66,12 +67,12 @@ handle_request_unauth(Req) ->
 send_auth_request(Req) ->
     Req:respond({401, [
         {"WWW-Authenticate", "Basic realm=\"RabbitMQ Status Page\""},
-        {"Content-Type", "text/plain"}
+        {"Content-Type", "text/html"}
         ], "401 Unauthorised.\n"}).
 
 
 handle_request(Req) ->
-    [Datetime,
+    [Datetime, BindedTo,
         RConns, RQueues, 
         FdUsed, FdTotal, 
         MemUsed, MemTotal, 
@@ -82,7 +83,7 @@ handle_request(Req) ->
     MemWarn = get_warning_level(MemUsed, MemTotal),
     ProcWarn = get_warning_level(ProcUsed, ProcTotal),
 
-    Resp0 = template:render([Datetime,
+    Resp0 = template:render([Datetime, BindedTo,
                             RConns, RQueues, 
                             ProcUsed, ProcTotal, ProcWarn, 
                             FdUsed, FdTotal, FdWarn, 
@@ -116,7 +117,15 @@ get_used_fd({unix, linux}) ->
 
 get_used_fd(_) ->
     unknown.
-    
+   
+
+%% vm_memory_monitor is available from RabbitMQ 1.7.1
+get_total_memory() ->
+    try vm_memory_monitor:get_vm_memory_high_watermark() * 
+                            vm_memory_monitor:get_total_memory()
+    catch
+        _ -> unknown
+    end.
     
 get_warning_level(Used, Total) ->
     if
@@ -134,10 +143,14 @@ get_warning_level(Used, Total) ->
 %%--------------------------------------------------------------------
 
 init([]) ->
+    {ok, Binds} = application:get_env(rabbit, tcp_listeners),
+    BindedTo = lists:flatten( [ status_render:print("~s:~p ", [Addr,Port])
+                                                || {Addr, Port} <- Binds ] ),
     State = #state{
             fd_total = get_total_fd(),
-            mem_total = vm_memory_monitor:get_vm_memory_high_watermark() * vm_memory_monitor:get_total_memory(),
-            proc_total = erlang:system_info(process_limit)
+            mem_total = get_total_memory(),
+            proc_total = erlang:system_info(process_limit),
+            binded_to = BindedTo
         },
     {ok, internal_update(State)}.
 
@@ -149,6 +162,7 @@ handle_call(get_context, _From, State0) ->
     end,
     
     Context = [ State#state.datetime,
+                State#state.binded_to,
                 State#state.connections,
                 State#state.queues,
                 State#state.fd_used,

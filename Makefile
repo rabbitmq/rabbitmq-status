@@ -10,8 +10,7 @@ include ../include.mk
 
 
 $(SOURCE_DIR)/template-ghost.erl: $(SOURCE_DIR)/template.et  $(EBIN_DIR)/erltl.beam
-	echo "-module(templateghost)." > src/template-ghost.erl
-	@mkdir -p $(EBIN_DIR)
-	$(ERL) -I -pa ebin -noshell  -eval 'erltl:compile("src/template.et"), halt().'
+	echo "-module(templateghost)." > $(SOURCE_DIR)/template-ghost.erl
+	$(ERL) -I -pa ebin -noshell  -eval 'erltl:compile("$(SOURCE_DIR)/template.et"), halt().'
 	mv $(SOURCE_DIR)/template.beam $(EBIN_DIR)
 
