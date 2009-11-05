@@ -69,9 +69,9 @@ format_info(Key, Value) ->
                    is_tuple(Value) ->
             inet_parse:ntoa(Value);
         Value when (Key =:= recv_oct orelse 
-			Key =:= send_oct orelse 
-			Key =:= memory orelse
-			Key =:= send_pend ) andalso is_number(Value) ->
+                        Key =:= send_oct orelse 
+                        Key =:= memory orelse
+                        Key =:= send_pend ) andalso is_number(Value) ->
             print("~pMB", [trunc(Value/1048576)]);
         Value when is_pid(Value) ->
             atom_to_list(node(Value));
