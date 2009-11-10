@@ -1,8 +1,8 @@
-<%? [Datetime, BindedTo, 
+<%? [Pid, Datetime, BindedTo, 
     Connections, Queues, 
     ProcUsed, ProcTotal, ProcWarn, 
     FdUsed, FdTotal, FdWarn,
-    MemUsed, MemTotal, MemWarn]
+    MemUsed, MemTotal, MemWarn, MemEts, MemBinary]
       = Data  %>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" dir="ltr">
@@ -42,13 +42,13 @@
 
 <table class="warns">
  <tr><td><label>node = </label><% node() %> </td></tr>
- <tr><td><label>pid = </label><% os:getpid() %> </td></tr>
+ <tr><td><label>pid = </label><% Pid %> </td></tr>
  <tr><td><label>binded to = </label><% BindedTo %> </td></tr>
  <tr class="<% FdWarn %>"><td><label>file descriptors (used/available)= </label><% FdUsed %> / <% FdTotal %> </td></tr>
  <tr class="<% ProcWarn %>"><td><label>erlang processes (used/available) = </label><% ProcUsed %> / <% ProcTotal %> </td></tr>
- <tr class="<% MemWarn %>"><td><label>memory (used/available) = </label><% MemUsed %> / <% MemTotal %> </td></tr>
- <tr><td><label>ets memory = </label><% trunc(erlang:memory(ets) /1024/1024) %>MB </td></tr>
- <tr><td><label>binary memory = </label><% trunc(erlang:memory(binary) /1024/1024) %>MB </td></tr>
+ <tr class="<% MemWarn %>"><td><label>memory (used/available) = </label><% {memory, MemUsed} %> / <% {memory, MemTotal} %> </td></tr>
+ <tr><td><label>ets memory = </label><% {memory, MemEts} %> </td></tr>
+ <tr><td><label>binary memory = </label><% {memory, MemBinary} %></td></tr>
 </table>
 
 <br/>
@@ -108,9 +108,12 @@
         Recv_oct, Recv_cnt, Send_oct, Send_cnt, Send_pend,
         State, Channels, User, Vhost, Timeout, Grame_max] =  Data %>
   <tr>
-   <% {"<td>~s</td><td>~s</td>", [Vhost, User]} %>
-   <% {"<td>~s</td><td>~s</td>", [State, Timeout]} %>
-   <% {"<td>~s:~s</td><td>~s</td><td>~s</td><td>~s</td>", [Peer_address, Peer_port, Recv_oct, Send_oct, Send_pend]} %>
+   <td><% {escape, Vhost} %></td><td><% {escape, User} %></td>
+   <td><% State %></td><td><% Timeout %></td>
+   <td><% {"~s:~p", [Peer_address, Peer_port]} %></td>
+            <td><% {memory, Recv_oct} %></td>
+            <td><% {memory, Send_oct} %></td>
+            <td><% {memory, Send_pend} %></td>
   </tr>
 
 <%@ print_empty_conn %>
@@ -124,11 +127,11 @@
     Messages_unacknowledged, Messages_uncommitted, Messages,
     Acks_uncommitted, Consumers, Transactions, Memory] = Data %>
   <tr>
-   <% {"<td>~s</td><td>~s</td><td>~s</td>", [Vhost, Name, Consumers]} %>
-   <% {"<td>~s</td>", [Memory]} %>
-   <% {"<td>~s</td><td>~s</td><td>~s</td>", [Messages, Messages_ready, Messages_unacknowledged]} %>
-   <% {"<td>~s</td><td>~s</td>", [Transactions, Acks_uncommitted]} %>
-   <% {"<td>~s</td><td>~s</td><td>~p</td>", [Durable, Auto_delete, Arguments]} %>
+   <td><% {escape, Vhost} %></td><td><% {escape, Name} %></td><td><% Consumers %></td>
+   <td><% {memory, Memory} %></td>
+   <td><% Messages %></td><td><% Messages_ready %></td><td><% Messages_unacknowledged %></td>
+   <td><% Transactions %></td><td><% Acks_uncommitted %></td>
+   <td><% Durable %></td><td><% Auto_delete %></td><td><% {escape, Arguments} %></td>
   </tr>
 
 <%@ print_empty_queue %>

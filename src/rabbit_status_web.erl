@@ -72,6 +72,45 @@ send_auth_request(Req) ->
 
 
 handle_request(Req) ->
+    case Req:get(path) of
+        "/"      -> handle_http_request(Req);
+        "/json"  -> handle_json_request(Req);
+        "/json/" -> handle_json_request(Req);
+        _ ->  Req:respond({404, [{"Content-Type", "text/html; charset=utf-8"}],
+                                    <<"404 Not found.">>})
+    end.
+
+
+handle_json_request(Req) ->
+    [Datetime, BindedTo,
+        RConns, RQueues, 
+        FdUsed, FdTotal, 
+        MemUsed, MemTotal, 
+        ProcUsed, ProcTotal ]
+            = get_context(),
+    Json = {struct,
+            [{pid, list_to_binary(os:getpid())},
+            {datetime, list_to_binary(Datetime)},
+            {binded_to, list_to_binary(BindedTo)},
+            {connections, [{struct,RConn} || RConn <- RConns]},
+            {queues, [{struct,RQueue} || RQueue <- RQueues]},
+            {fd_used, FdUsed},
+            {fd_total, FdTotal},
+            {mem_used, MemUsed},
+            {mem_total, MemTotal},
+            {proc_used, ProcUsed},
+            {proc_total, ProcTotal},
+            {mem_ets, erlang:memory(ets)},
+            {mem_binary, erlang:memory(binary)}
+            ]},
+    Resp = mochijson2:encode(Json),
+    Req:respond({200, [
+                {"Refresh", status_render:print("~p", trunc(?REFRESH_RATIO/1000))},
+                {"Content-Type", "application/json; charset=utf-8"}
+            ], Resp}).
+
+
+handle_http_request(Req) ->
     [Datetime, BindedTo,
         RConns, RQueues, 
         FdUsed, FdTotal, 
@@ -83,19 +122,22 @@ handle_request(Req) ->
     MemWarn = get_warning_level(MemUsed, MemTotal),
     ProcWarn = get_warning_level(ProcUsed, ProcTotal),
 
-    Resp0 = template:render([Datetime, BindedTo,
-                            RConns, RQueues, 
-                            ProcUsed, ProcTotal, ProcWarn, 
+    Resp0 = template:render([os:getpid(),
+                            Datetime, BindedTo,
+                            [[ V || {_K, V} <- RConn] || RConn <- RConns],
+                            [[ V || {_K, V} <- RQueue] || RQueue <- RQueues],
+                            ProcUsed, ProcTotal, ProcWarn,
                             FdUsed, FdTotal, FdWarn, 
                             status_render:format_info(memory, MemUsed), 
-			    status_render:format_info(memory, MemTotal),
-			    MemWarn]),
+                            status_render:format_info(memory, MemTotal),
+                            MemWarn,
+                            status_render:format_info(memory, erlang:memory(ets)),
+                            status_render:format_info(memory, erlang:memory(binary))]),
     Resp1 = lists:map(fun (A) -> status_render:binaryse_widget(A) end, Resp0),
-    Resp2 = lists:flatten(Resp1),
     Req:respond({200, [
                 {"Refresh", status_render:print("~p", trunc(?REFRESH_RATIO/1000))},
                 {"Content-Type", "text/html; charset=utf-8"}
-            ], iolist_to_binary(Resp2)}).
+            ], iolist_to_binary(lists:flatten(Resp1))}).
 
 
 %%--------------------------------------------------------------------

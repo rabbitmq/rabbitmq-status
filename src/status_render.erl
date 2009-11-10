@@ -13,7 +13,7 @@ render_conns() ->
                 send_oct, send_cnt, send_pend, state, 
                 channels, user, vhost, timeout, frame_max],
     Conns = rabbit_networking:connection_info_all(),
-    [[format_info_item(Key, Conn) || Key <- ConnKeys] || Conn <- Conns].
+    [[{Key, format_info_item(Key, Conn)} || Key <- ConnKeys] || Conn <- Conns].
 
 render_queues() ->
     QueueKeys = [name, durable, auto_delete, arguments, pid, messages_ready, 
@@ -23,39 +23,46 @@ render_queues() ->
     Queues = lists:flatten([
                     [{Vhost, Queue} || Queue <- rabbit_amqqueue:info_all(Vhost)]
                         || Vhost <- rabbit_access_control:list_vhosts()]),
-    [[format_info(vhost, Vhost)] ++ 
-                    [format_info_item(Key, Queue) || Key <- QueueKeys]
+    [[{vhost, format_info(vhost, Vhost)}] ++ 
+             [{Key, format_info_item(Key, Queue)} || Key <- QueueKeys]
                                                   || {Vhost, Queue} <- Queues].
 
 
 binaryse_widget(A) ->
     case A of
         B when is_binary(B) -> B;
+        F when is_float(F) -> print("~.3f", [F]);
+        N when is_number(N) -> print("~p", [N]);
         L when is_list(L) ->
                 case io_lib:printable_list(L) of
                     true -> L;
                     false -> lists:map(fun (C) -> binaryse_widget(C) end, L)
                 end;
-        F when is_float(F) -> list_to_binary(lists:flatten(
-                                                io_lib:format("~.3f", [F])));
-        T when is_tuple(T) ->
-                {Form, Body0} = T,
-                Body  = case is_list(Body0) of 
-                            false -> [Body0];
-                            true -> Body0
-                        end,
-                list_to_binary(lists:flatten(io_lib:format(Form, Body)));
-        P -> list_to_binary(lists:flatten(io_lib:format("~p", [P])))
+        {escape, Body} when is_binary(Body) orelse is_list(Body) ->
+                print("~s", [Body]);
+        {escape, Body} ->
+                print("~w", Body);
+        {memory, Mem} when is_number(Mem) ->
+                print("~pMB", [trunc(Mem/1048576)]);
+        {Form, Body} when is_list(Body) ->
+                print(Form, Body);
+        {Form, Body} ->
+                print(Form, [Body]);
+        P -> print("~p", [P])           %% shouldn't be used, better to escape.
     end.
 
 print(Fmt, Val) when is_list(Val) ->
-    lists:flatten(io_lib:format(Fmt, Val));
+    escape(lists:flatten(io_lib:format(Fmt, Val)));
 print(Fmt, Val) ->
     print(Fmt, [Val]).
 
+print_no_escape(Fmt, Val) when is_list(Val) ->
+    list_to_binary(lists:flatten(io_lib:format(Fmt, Val))).
 
 
-escape(A) -> A.
+
+escape(A) ->
+    mochiweb_html:escape(A).
 
 format_info_item(Key, Items) ->
     format_info(Key, proplists:get_value(Key, Items)).
@@ -63,23 +70,16 @@ format_info_item(Key, Items) ->
 
 format_info(Key, Value) ->
     case Value of
-        #resource{name = Name} ->
-            print("~s", [Name]);
+        #resource{name = Name} ->       %% queue name
+            Name;
         Value when Key =:= address; Key =:= peer_address andalso
                    is_tuple(Value) ->
-            inet_parse:ntoa(Value);
-        Value when (Key =:= recv_oct orelse 
-                        Key =:= send_oct orelse 
-                        Key =:= memory orelse
-                        Key =:= send_pend ) andalso is_number(Value) ->
-            print("~pMB", [trunc(Value/1048576)]);
-        Value when is_pid(Value) ->
-            atom_to_list(node(Value));
-        Value when is_binary(Value) -> 
-            escape(Value);
-        Value when is_atom(Value) ->
-             escape(atom_to_list(Value));
-        Value -> 
-            print("~w", [Value])
+            list_to_binary(inet_parse:ntoa(Value));
+        Value when is_number(Value) ->  %% memory stats, counters
+            Value;
+        Value when is_binary(Value) ->  %% vhost, username
+            Value;
+        Value ->                        %% queue arguments
+            print_no_escape("~w", [Value])
     end.
 
