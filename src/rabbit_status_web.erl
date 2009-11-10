@@ -11,7 +11,7 @@
 
 -include_lib("rabbit_common/include/rabbit.hrl").
 
--define(REFRESH_RATIO, 3000).
+-define(REFRESH_RATIO, 8000).
 
 
 %%--------------------------------------------------------------------
