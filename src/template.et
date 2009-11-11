@@ -1,4 +1,4 @@
-<%? [Pid, Datetime, BindedTo, 
+<%? [Pid, Datetime, BoundTo, 
     Connections, Queues, 
     ProcUsed, ProcTotal, ProcWarn, 
     FdUsed, FdTotal, FdWarn,
@@ -43,7 +43,7 @@
 <table class="warns">
  <tr><td><label>node = </label><% node() %> </td></tr>
  <tr><td><label>pid = </label><% Pid %> </td></tr>
- <tr><td><label>binded to = </label><% BindedTo %> </td></tr>
+ <tr><td><label>bound to = </label><% BoundTo %> </td></tr>
  <tr class="<% FdWarn %>"><td><label>file descriptors (used/available)= </label><% FdUsed %> / <% FdTotal %> </td></tr>
  <tr class="<% ProcWarn %>"><td><label>erlang processes (used/available) = </label><% ProcUsed %> / <% ProcTotal %> </td></tr>
  <tr class="<% MemWarn %>"><td><label>memory (used/available) = </label><% {memory, MemUsed} %> / <% {memory, MemTotal} %> </td></tr>

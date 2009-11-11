@@ -39,7 +39,7 @@
 -record(state, {
         time_ms,
         datetime,
-        binded_to,
+        bound_to,
         connections,
         queues,
         fd_used,
@@ -102,7 +102,7 @@ handle_request(Req) ->
 
 
 handle_json_request(Req) ->
-    [Datetime, BindedTo,
+    [Datetime, BoundTo,
         RConns, RQueues, 
         FdUsed, FdTotal, 
         MemUsed, MemTotal, 
@@ -111,7 +111,7 @@ handle_json_request(Req) ->
     Json = {struct,
             [{pid, list_to_binary(os:getpid())},
             {datetime, list_to_binary(Datetime)},
-            {binded_to, list_to_binary(BindedTo)},
+            {bound_to, list_to_binary(BoundTo)},
             {connections, [{struct,RConn} || RConn <- RConns]},
             {queues, [{struct,RQueue} || RQueue <- RQueues]},
             {fd_used, FdUsed},
@@ -131,7 +131,7 @@ handle_json_request(Req) ->
 
 
 handle_http_request(Req) ->
-    [Datetime, BindedTo,
+    [Datetime, BoundTo,
         RConns, RQueues, 
         FdUsed, FdTotal, 
         MemUsed, MemTotal, 
@@ -143,7 +143,7 @@ handle_http_request(Req) ->
     ProcWarn = get_warning_level(ProcUsed, ProcTotal),
 
     Resp0 = template:render([os:getpid(),
-                            Datetime, BindedTo,
+                            Datetime, BoundTo,
                             [[ V || {_K, V} <- RConn] || RConn <- RConns],
                             [[ V || {_K, V} <- RQueue] || RQueue <- RQueues],
                             ProcUsed, ProcTotal, ProcWarn,
@@ -173,15 +173,25 @@ get_total_fd(_) ->
     unknown.
 
 
+get_used_fd_lsof() ->
+    Lsof = os:cmd("lsof -d \"0-9999999\" -lna -p " ++ os:getpid()),
+    string:words(Lsof, $\n).
+
 get_used_fd() ->
     get_used_fd(os:type()).
 
 get_used_fd({unix, linux}) ->
-    string:words(os:cmd("ls /proc/"++os:getpid()++"/fd"), $\n);
+    get_used_fd_lsof();
+
+get_used_fd({unix, darwin}) ->
+    get_used_fd_lsof();
+
+get_used_fd({unix,freebsd}) ->
+    get_used_fd_lsof();
 
 get_used_fd(_) ->
     unknown.
-   
+
 
 %% vm_memory_monitor is available from RabbitMQ 1.7.1
 get_total_memory() ->
@@ -208,13 +218,13 @@ get_warning_level(Used, Total) ->
 
 init([]) ->
     {ok, Binds} = application:get_env(rabbit, tcp_listeners),
-    BindedTo = lists:flatten( [ status_render:print("~s:~p ", [Addr,Port])
+    BoundTo = lists:flatten( [ status_render:print("~s:~p ", [Addr,Port])
                                                 || {Addr, Port} <- Binds ] ),
     State = #state{
             fd_total = get_total_fd(),
             mem_total = get_total_memory(),
             proc_total = erlang:system_info(process_limit),
-            binded_to = BindedTo
+            bound_to = BoundTo
         },
     {ok, internal_update(State)}.
 
@@ -226,7 +236,7 @@ handle_call(get_context, _From, State0) ->
     end,
     
     Context = [ State#state.datetime,
-                State#state.binded_to,
+                State#state.bound_to,
                 State#state.connections,
                 State#state.queues,
                 State#state.fd_used,
