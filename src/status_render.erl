@@ -64,6 +64,8 @@ widget_to_binary(A) ->
                 print("~w", Body);
         {memory, Mem} when is_number(Mem) ->
                 print("~pMB", [trunc(Mem/1048576)]);
+        {memory, Mem} ->
+                print("~p", [Mem]);
         {Form, Body} when is_list(Body) ->
                 print(Form, Body);
         {Form, Body} ->
