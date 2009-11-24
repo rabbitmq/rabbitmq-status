@@ -20,7 +20,7 @@
 %%
 -module(status_render).
 
--export([render_conns/0, render_queues/0, binaryse_widget/1]).
+-export([render_conns/0, render_queues/0, widget_to_binary/1]).
 -export([escape/1, format_info_item/2, format_info/2, print/2]).
 
 -include_lib("rabbit_common/include/rabbit.hrl").
@@ -48,7 +48,7 @@ render_queues() ->
                                                   || {Vhost, Queue} <- Queues].
 
 
-binaryse_widget(A) ->
+widget_to_binary(A) ->
     case A of
         B when is_binary(B) -> B;
         F when is_float(F) -> print("~.3f", [F]);
@@ -56,7 +56,7 @@ binaryse_widget(A) ->
         L when is_list(L) ->
                 case io_lib:printable_list(L) of
                     true -> L;
-                    false -> lists:map(fun (C) -> binaryse_widget(C) end, L)
+                    false -> lists:map(fun (C) -> widget_to_binary(C) end, L)
                 end;
         {escape, Body} when is_binary(Body) orelse is_list(Body) ->
                 print("~s", [Body]);
@@ -92,7 +92,7 @@ format_info(Key, Value) ->
     case Value of
         #resource{name = Name} ->       %% queue name
             Name;
-        Value when Key =:= address; Key =:= peer_address andalso
+        Value when (Key =:= address orelse Key =:= peer_address) andalso
                    is_tuple(Value) ->
             list_to_binary(inet_parse:ntoa(Value));
         Value when is_number(Value) ->  %% memory stats, counters

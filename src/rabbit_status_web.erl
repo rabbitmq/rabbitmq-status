@@ -31,7 +31,7 @@
 
 -include_lib("rabbit_common/include/rabbit.hrl").
 
--define(REFRESH_RATIO, 8000).
+-define(REFRESH_RATIO, 15000).
 
 
 %%--------------------------------------------------------------------
@@ -153,7 +153,7 @@ handle_http_request(Req) ->
                             MemWarn,
                             status_render:format_info(memory, erlang:memory(ets)),
                             status_render:format_info(memory, erlang:memory(binary))]),
-    Resp1 = lists:map(fun (A) -> status_render:binaryse_widget(A) end, Resp0),
+    Resp1 = lists:map(fun (A) -> status_render:widget_to_binary(A) end, Resp0),
     Req:respond({200, [
                 {"Refresh", status_render:print("~p", trunc(?REFRESH_RATIO/1000))},
                 {"Content-Type", "text/html; charset=utf-8"}
@@ -162,12 +162,18 @@ handle_http_request(Req) ->
 
 %%--------------------------------------------------------------------
 
+get_total_fd_ulimit() ->
+    {MaxFds, _} = string:to_integer(os:cmd("ulimit -n")),
+    MaxFds.
+
 get_total_fd() ->
     get_total_fd(os:type()).
 
-get_total_fd({unix, linux}) ->
-    {MaxFds, _} = string:to_integer(os:cmd("ulimit -n")),
-    MaxFds;
+get_total_fd({unix, Os}) when Os =:= linux
+                       orelse Os =:= darwin
+                       orelse Os =:= freebsd
+                       orelse Os =:= sunos ->
+    get_total_fd_ulimit();
 
 get_total_fd(_) ->
     unknown.
@@ -180,14 +186,11 @@ get_used_fd_lsof() ->
 get_used_fd() ->
     get_used_fd(os:type()).
 
-get_used_fd({unix, linux}) ->
+get_used_fd({unix, Os}) when Os =:= linux
+                      orelse Os =:= darwin
+                      orelse Os =:= freebsd ->
     get_used_fd_lsof();
 
-get_used_fd({unix, darwin}) ->
-    get_used_fd_lsof();
-
-get_used_fd({unix,freebsd}) ->
-    get_used_fd_lsof();
 
 get_used_fd(_) ->
     unknown.
