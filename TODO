@@ -1,5 +1,4 @@
 To do:
 
-  * queue names/usernames are not escaped - possible XSS attacs
   * instead of polling, we shall push updates to rabbit_status process
 

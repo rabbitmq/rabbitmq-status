@@ -196,7 +196,10 @@ get_used_fd(_) ->
     unknown.
 
 
-%% vm_memory_monitor is available from RabbitMQ 1.7.1
+% vm_memory_monitor is available from RabbitMQ 1.7.1. This plugin should work
+% also on RabbitMQ 1.7.0. In order to make it working we need to check if
+% this api is exposed. This hack (dynamically checking the api) should be
+% removed once 1.7.1 is released.
 get_total_memory() ->
     case erlang:function_exported(vm_memory_monitor,
                                   get_vm_memory_high_watermark, 0) of
