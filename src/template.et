@@ -37,7 +37,7 @@
     tr.green {background: lightgreen;}
 -->
 </style>
-</head></body>
+</head><body>
 <h1>RabbitMQ statistics report on <% Datetime %></h1>
 
 <table class="warns">
