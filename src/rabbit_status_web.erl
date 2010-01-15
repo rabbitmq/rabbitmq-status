@@ -1,3 +1,23 @@
+%%   The contents of this file are subject to the Mozilla Public License
+%%   Version 1.1 (the "License"); you may not use this file except in
+%%   compliance with the License. You may obtain a copy of the License at
+%%   http://www.mozilla.org/MPL/
+%%
+%%   Software distributed under the License is distributed on an "AS IS"
+%%   basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See the
+%%   License for the specific language governing rights and limitations
+%%   under the License.
+%%
+%%   The Original Code is RabbitMQ Status Plugin.
+%%
+%%   The Initial Developers of the Original Code are LShift Ltd.
+%%
+%%   Copyright (C) 2009 LShift Ltd.
+%%
+%%   All Rights Reserved.
+%%
+%%   Contributor(s): ______________________________________.
+%%
 -module(rabbit_status_web).
 
 -behaviour(gen_server).
@@ -11,7 +31,7 @@
 
 -include_lib("rabbit_common/include/rabbit.hrl").
 
--define(REFRESH_RATIO, 8000).
+-define(REFRESH_RATIO, 15000).
 
 
 %%--------------------------------------------------------------------
@@ -19,7 +39,7 @@
 -record(state, {
         time_ms,
         datetime,
-        binded_to,
+        bound_to,
         connections,
         queues,
         fd_used,
@@ -44,17 +64,17 @@ update() ->
 
 
 %%--------------------------------------------------------------------
- 
+
 handle_request_unauth(Req) ->
-    case Req:get_header_value("Authorization") of 
+    case Req:get_header_value("Authorization") of
         undefined ->
             send_auth_request(Req);
         AuthHeader ->
-            {_Type, [_Space|Auth]} = lists:splitwith(fun (A) -> A =/= 32 end, 
+            {_Type, [_Space|Auth]} = lists:splitwith(fun (A) -> A =/= 32 end,
                                                     AuthHeader),
             {User, [_Colon|Pass]} = lists:splitwith(fun (A) -> A =/= $: end,
                                                 base64:decode_to_string(Auth)),
-            
+
             case rabbit_access_control:lookup_user(list_to_binary(User)) of
                 {ok, U}  -> case list_to_binary(Pass) == U#user.password of
                                 true -> handle_request(Req);
@@ -82,26 +102,26 @@ handle_request(Req) ->
 
 
 handle_json_request(Req) ->
-    [Datetime, BindedTo,
-        RConns, RQueues, 
-        FdUsed, FdTotal, 
-        MemUsed, MemTotal, 
+    [Datetime, BoundTo,
+        RConns, RQueues,
+        FdUsed, FdTotal,
+        MemUsed, MemTotal,
         ProcUsed, ProcTotal ]
             = get_context(),
     Json = {struct,
             [{pid, list_to_binary(os:getpid())},
-            {datetime, list_to_binary(Datetime)},
-            {binded_to, list_to_binary(BindedTo)},
-            {connections, [{struct,RConn} || RConn <- RConns]},
-            {queues, [{struct,RQueue} || RQueue <- RQueues]},
-            {fd_used, FdUsed},
-            {fd_total, FdTotal},
-            {mem_used, MemUsed},
-            {mem_total, MemTotal},
-            {proc_used, ProcUsed},
-            {proc_total, ProcTotal},
-            {mem_ets, erlang:memory(ets)},
-            {mem_binary, erlang:memory(binary)}
+             {datetime, list_to_binary(Datetime)},
+             {bound_to, list_to_binary(BoundTo)},
+             {connections, [{struct,RConn} || RConn <- RConns]},
+             {queues, [{struct,RQueue} || RQueue <- RQueues]},
+             {fd_used, FdUsed},
+             {fd_total, FdTotal},
+             {mem_used, MemUsed},
+             {mem_total, MemTotal},
+             {proc_used, ProcUsed},
+             {proc_total, ProcTotal},
+             {mem_ets, erlang:memory(ets)},
+             {mem_binary, erlang:memory(binary)}
             ]},
     Resp = mochijson2:encode(Json),
     Req:respond({200, [
@@ -111,66 +131,83 @@ handle_json_request(Req) ->
 
 
 handle_http_request(Req) ->
-    [Datetime, BindedTo,
-        RConns, RQueues, 
-        FdUsed, FdTotal, 
-        MemUsed, MemTotal, 
+    [Datetime, BoundTo,
+        RConns, RQueues,
+        FdUsed, FdTotal,
+        MemUsed, MemTotal,
         ProcUsed, ProcTotal ]
             = get_context(),
-    
+
     FdWarn = get_warning_level(FdUsed, FdTotal),
     MemWarn = get_warning_level(MemUsed, MemTotal),
     ProcWarn = get_warning_level(ProcUsed, ProcTotal),
 
     Resp0 = template:render([os:getpid(),
-                            Datetime, BindedTo,
+                            Datetime, BoundTo,
                             [[ V || {_K, V} <- RConn] || RConn <- RConns],
                             [[ V || {_K, V} <- RQueue] || RQueue <- RQueues],
                             ProcUsed, ProcTotal, ProcWarn,
-                            FdUsed, FdTotal, FdWarn, 
-                            status_render:format_info(memory, MemUsed), 
+                            FdUsed, FdTotal, FdWarn,
+                            status_render:format_info(memory, MemUsed),
                             status_render:format_info(memory, MemTotal),
                             MemWarn,
                             status_render:format_info(memory, erlang:memory(ets)),
                             status_render:format_info(memory, erlang:memory(binary))]),
-    Resp1 = lists:map(fun (A) -> status_render:binaryse_widget(A) end, Resp0),
+    Resp1 = [status_render:widget_to_binary(A) || A <- Resp0],
     Req:respond({200, [
                 {"Refresh", status_render:print("~p", trunc(?REFRESH_RATIO/1000))},
                 {"Content-Type", "text/html; charset=utf-8"}
-            ], iolist_to_binary(lists:flatten(Resp1))}).
+            ], iolist_to_binary(Resp1)}).
 
 
 %%--------------------------------------------------------------------
 
+get_total_fd_ulimit() ->
+    {MaxFds, _} = string:to_integer(os:cmd("ulimit -n")),
+    MaxFds.
+
 get_total_fd() ->
     get_total_fd(os:type()).
 
-get_total_fd({unix, linux}) ->
-    {MaxFds, _} = string:to_integer(os:cmd("ulimit -n")),
-    MaxFds;
+get_total_fd({unix, Os}) when Os =:= linux
+                       orelse Os =:= darwin
+                       orelse Os =:= freebsd
+                       orelse Os =:= sunos ->
+    get_total_fd_ulimit();
 
 get_total_fd(_) ->
     unknown.
 
 
+get_used_fd_lsof() ->
+    Lsof = os:cmd("lsof -d \"0-9999999\" -lna -p " ++ os:getpid()),
+    string:words(Lsof, $\n).
+
 get_used_fd() ->
     get_used_fd(os:type()).
 
-get_used_fd({unix, linux}) ->
-    string:words(os:cmd("ls /proc/"++os:getpid()++"/fd"), $\n);
+get_used_fd({unix, Os}) when Os =:= linux
+                      orelse Os =:= darwin
+                      orelse Os =:= freebsd ->
+    get_used_fd_lsof();
+
 
 get_used_fd(_) ->
     unknown.
-   
 
-%% vm_memory_monitor is available from RabbitMQ 1.7.1
+
+% vm_memory_monitor is available from RabbitMQ 1.7.1. This plugin should work
+% also on RabbitMQ 1.7.0. In order to make it working we need to check if
+% this api is exposed. This hack (dynamically checking the api) should be
+% removed once 1.7.1 is released.
 get_total_memory() ->
-    case catch vm_memory_monitor:get_vm_memory_high_watermark() * 
-               vm_memory_monitor:get_total_memory() of
-        {'EXIT', _} -> unknown;
-        B -> B
+    case erlang:function_exported(vm_memory_monitor,
+                                  get_vm_memory_high_watermark, 0) of
+        true -> vm_memory_monitor:get_vm_memory_high_watermark() *
+                vm_memory_monitor:get_total_memory();
+        false -> unknown
     end.
-    
+
 get_warning_level(Used, Total) ->
     if
         is_number(Used) andalso is_number(Total) ->
@@ -178,7 +215,7 @@ get_warning_level(Used, Total) ->
             if
                 Ratio > 0.75 -> red;
                 Ratio > 0.50 -> yellow;
-                true  -> green
+                true         -> green
             end;
         true -> none
     end.
@@ -188,13 +225,13 @@ get_warning_level(Used, Total) ->
 
 init([]) ->
     {ok, Binds} = application:get_env(rabbit, tcp_listeners),
-    BindedTo = lists:flatten( [ status_render:print("~s:~p ", [Addr,Port])
+    BoundTo = lists:flatten( [ status_render:print("~s:~p ", [Addr,Port])
                                                 || {Addr, Port} <- Binds ] ),
     State = #state{
             fd_total = get_total_fd(),
             mem_total = get_total_memory(),
             proc_total = erlang:system_info(process_limit),
-            binded_to = BindedTo
+            bound_to = BoundTo
         },
     {ok, internal_update(State)}.
 
@@ -204,9 +241,9 @@ handle_call(get_context, _From, State0) ->
         true  -> internal_update(State0);
         false -> State0
     end,
-    
+
     Context = [ State#state.datetime,
-                State#state.binded_to,
+                State#state.bound_to,
                 State#state.connections,
                 State#state.queues,
                 State#state.fd_used,
