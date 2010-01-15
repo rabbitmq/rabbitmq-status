@@ -15,7 +15,7 @@ ERLTL_SRC_DIR=$(ERLTL_DIR)/src
 
 $(ERLTL_EBIN_DIR)/%.beam: $(ERLTL_SRC_DIR)/%.erl
 	@mkdir -p $(ERLTL_EBIN_DIR)
-	$(ERLC) $(INCLUDE_OPTS) -o $(ERLTL_EBIN_DIR) -Wall +debug_info -pa $(ERLTL_EBIN_DIR) $<
+	$(ERLC) -o $(ERLTL_EBIN_DIR) -Wall +debug_info $<
 
 $(EBIN_DIR)/template.beam: $(SOURCE_DIR)/template.et $(ERLTL_EBIN_DIR)/erltl.beam
 	$(ERL) -I -pa $(ERLTL_EBIN_DIR) -noshell -eval 'erltl:compile("$(SOURCE_DIR)/template.et", [{outdir, "$(EBIN_DIR)"}, report_errors, report_warnings, nowarn_unused_vars]), halt().'
