@@ -32,6 +32,6 @@ start(_Type, _StartArgs) ->
                     rabbit_status_web:handle_request_unauth(Req)
                 end),
     Res.
-    
+
 stop(_State) ->
     ok.

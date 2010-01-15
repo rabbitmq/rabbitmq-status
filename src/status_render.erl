@@ -30,20 +30,20 @@
 
 render_conns() ->
     ConnKeys = [pid, address, port, peer_address, peer_port, recv_oct, recv_cnt,
-                send_oct, send_cnt, send_pend, state, 
+                send_oct, send_cnt, send_pend, state,
                 channels, user, vhost, timeout, frame_max],
     Conns = rabbit_networking:connection_info_all(),
     [[{Key, format_info_item(Key, Conn)} || Key <- ConnKeys] || Conn <- Conns].
 
 render_queues() ->
-    QueueKeys = [name, durable, auto_delete, arguments, pid, messages_ready, 
+    QueueKeys = [name, durable, auto_delete, arguments, pid, messages_ready,
                  messages_unacknowledged, messages_uncommitted, messages,
                  acks_uncommitted, consumers, transactions, memory],
 
     Queues = lists:flatten([
                     [{Vhost, Queue} || Queue <- rabbit_amqqueue:info_all(Vhost)]
                         || Vhost <- rabbit_access_control:list_vhosts()]),
-    [[{vhost, format_info(vhost, Vhost)}] ++ 
+    [[{vhost, format_info(vhost, Vhost)}] ++
              [{Key, format_info_item(Key, Queue)} || Key <- QueueKeys]
                                                   || {Vhost, Queue} <- Queues].
 

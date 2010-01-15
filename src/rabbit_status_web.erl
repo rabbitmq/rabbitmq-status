@@ -64,17 +64,17 @@ update() ->
 
 
 %%--------------------------------------------------------------------
- 
+
 handle_request_unauth(Req) ->
-    case Req:get_header_value("Authorization") of 
+    case Req:get_header_value("Authorization") of
         undefined ->
             send_auth_request(Req);
         AuthHeader ->
-            {_Type, [_Space|Auth]} = lists:splitwith(fun (A) -> A =/= 32 end, 
+            {_Type, [_Space|Auth]} = lists:splitwith(fun (A) -> A =/= 32 end,
                                                     AuthHeader),
             {User, [_Colon|Pass]} = lists:splitwith(fun (A) -> A =/= $: end,
                                                 base64:decode_to_string(Auth)),
-            
+
             case rabbit_access_control:lookup_user(list_to_binary(User)) of
                 {ok, U}  -> case list_to_binary(Pass) == U#user.password of
                                 true -> handle_request(Req);
@@ -103,25 +103,25 @@ handle_request(Req) ->
 
 handle_json_request(Req) ->
     [Datetime, BoundTo,
-        RConns, RQueues, 
-        FdUsed, FdTotal, 
-        MemUsed, MemTotal, 
+        RConns, RQueues,
+        FdUsed, FdTotal,
+        MemUsed, MemTotal,
         ProcUsed, ProcTotal ]
             = get_context(),
     Json = {struct,
             [{pid, list_to_binary(os:getpid())},
-            {datetime, list_to_binary(Datetime)},
-            {bound_to, list_to_binary(BoundTo)},
-            {connections, [{struct,RConn} || RConn <- RConns]},
-            {queues, [{struct,RQueue} || RQueue <- RQueues]},
-            {fd_used, FdUsed},
-            {fd_total, FdTotal},
-            {mem_used, MemUsed},
-            {mem_total, MemTotal},
-            {proc_used, ProcUsed},
-            {proc_total, ProcTotal},
-            {mem_ets, erlang:memory(ets)},
-            {mem_binary, erlang:memory(binary)}
+             {datetime, list_to_binary(Datetime)},
+             {bound_to, list_to_binary(BoundTo)},
+             {connections, [{struct,RConn} || RConn <- RConns]},
+             {queues, [{struct,RQueue} || RQueue <- RQueues]},
+             {fd_used, FdUsed},
+             {fd_total, FdTotal},
+             {mem_used, MemUsed},
+             {mem_total, MemTotal},
+             {proc_used, ProcUsed},
+             {proc_total, ProcTotal},
+             {mem_ets, erlang:memory(ets)},
+             {mem_binary, erlang:memory(binary)}
             ]},
     Resp = mochijson2:encode(Json),
     Req:respond({200, [
@@ -132,12 +132,12 @@ handle_json_request(Req) ->
 
 handle_http_request(Req) ->
     [Datetime, BoundTo,
-        RConns, RQueues, 
-        FdUsed, FdTotal, 
-        MemUsed, MemTotal, 
+        RConns, RQueues,
+        FdUsed, FdTotal,
+        MemUsed, MemTotal,
         ProcUsed, ProcTotal ]
             = get_context(),
-    
+
     FdWarn = get_warning_level(FdUsed, FdTotal),
     MemWarn = get_warning_level(MemUsed, MemTotal),
     ProcWarn = get_warning_level(ProcUsed, ProcTotal),
@@ -147,17 +147,17 @@ handle_http_request(Req) ->
                             [[ V || {_K, V} <- RConn] || RConn <- RConns],
                             [[ V || {_K, V} <- RQueue] || RQueue <- RQueues],
                             ProcUsed, ProcTotal, ProcWarn,
-                            FdUsed, FdTotal, FdWarn, 
-                            status_render:format_info(memory, MemUsed), 
+                            FdUsed, FdTotal, FdWarn,
+                            status_render:format_info(memory, MemUsed),
                             status_render:format_info(memory, MemTotal),
                             MemWarn,
                             status_render:format_info(memory, erlang:memory(ets)),
                             status_render:format_info(memory, erlang:memory(binary))]),
-    Resp1 = lists:map(fun (A) -> status_render:widget_to_binary(A) end, Resp0),
+    Resp1 = [status_render:widget_to_binary(A) || A <- Resp0],
     Req:respond({200, [
                 {"Refresh", status_render:print("~p", trunc(?REFRESH_RATIO/1000))},
                 {"Content-Type", "text/html; charset=utf-8"}
-            ], iolist_to_binary(lists:flatten(Resp1))}).
+            ], iolist_to_binary(Resp1)}).
 
 
 %%--------------------------------------------------------------------
@@ -203,11 +203,11 @@ get_used_fd(_) ->
 get_total_memory() ->
     case erlang:function_exported(vm_memory_monitor,
                                   get_vm_memory_high_watermark, 0) of
-        true -> vm_memory_monitor:get_vm_memory_high_watermark() * 
+        true -> vm_memory_monitor:get_vm_memory_high_watermark() *
                 vm_memory_monitor:get_total_memory();
         false -> unknown
     end.
-    
+
 get_warning_level(Used, Total) ->
     if
         is_number(Used) andalso is_number(Total) ->
@@ -215,7 +215,7 @@ get_warning_level(Used, Total) ->
             if
                 Ratio > 0.75 -> red;
                 Ratio > 0.50 -> yellow;
-                true  -> green
+                true         -> green
             end;
         true -> none
     end.
@@ -241,7 +241,7 @@ handle_call(get_context, _From, State0) ->
         true  -> internal_update(State0);
         false -> State0
     end,
-    
+
     Context = [ State#state.datetime,
                 State#state.bound_to,
                 State#state.connections,

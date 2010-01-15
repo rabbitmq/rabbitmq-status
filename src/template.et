@@ -1,6 +1,6 @@
-<%? [Pid, Datetime, BoundTo, 
-    Connections, Queues, 
-    ProcUsed, ProcTotal, ProcWarn, 
+<%? [Pid, Datetime, BoundTo,
+    Connections, Queues,
+    ProcUsed, ProcTotal, ProcWarn,
     FdUsed, FdTotal, FdWarn,
     MemUsed, MemTotal, MemWarn, MemEts, MemBinary]
       = Data  %>
@@ -18,7 +18,7 @@
     table th, table td {
         border-width: 1px;
         border-style: solid solid solid solid;
-        border-color: gray; 
+        border-color: gray;
         padding: 2px;
     }
     table th {text-align:center;}
@@ -64,7 +64,7 @@
   <tr class="titre">
    <th>Vhost</th><th>Username</th>
    <th>State</th><th>Timeout</th>
-   <th>Peer address</th><th>Recv</th><th>Send</th><th>Pending</th>
+   <th>Peer address</th><th>Recv</th><th>Sent</th><th>Pending</th>
   </tr>
  </thead>
  <tbody>
@@ -104,7 +104,7 @@
 
 
 <%@ print_conn %>
-<%?  [Pid, Address, Port, Peer_address, Peer_port, 
+<%?  [Pid, Address, Port, Peer_address, Peer_port,
         Recv_oct, Recv_cnt, Send_oct, Send_cnt, Send_pend,
         State, Channels, User, Vhost, Timeout, Grame_max] =  Data %>
   <tr>
@@ -123,7 +123,7 @@
 
 
 <%@ print_queue %>
-<%? [Vhost, Name, Durable, Auto_delete, Arguments, Pid, Messages_ready, 
+<%? [Vhost, Name, Durable, Auto_delete, Arguments, Pid, Messages_ready,
     Messages_unacknowledged, Messages_uncommitted, Messages,
     Acks_uncommitted, Consumers, Transactions, Memory] = Data %>
   <tr>
