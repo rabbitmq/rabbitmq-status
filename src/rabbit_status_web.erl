@@ -62,7 +62,7 @@ get_context(Timeout) ->
     gen_server2:call(?MODULE, get_context, Timeout).
 
 % By default, let's not wait too long. If that takes more than 1 second,
-% it's better to quickly return 500 error rather than hang.
+% it's better to quickly return 408 "request tiemout" rather than hang.
 get_context() ->
     get_context(1000).
 
@@ -149,10 +149,10 @@ apply_context(Fun, Req) ->
 	{ok, Context} ->
 	    apply(?MODULE, Fun, [Req, Context]);
 	{timeout, _} ->
-	    Req:respond({500, [{"Refresh", status_render:print(
+	    Req:respond({408, [{"Refresh", status_render:print(
 					     "~p", trunc(?REFRESH_RATIO/1000))},
 			       {"Content-Type", "text/plain; charset=utf-8"}
-			      ], <<"500 Internal server error.\n">>})
+			      ], <<"408 Request Timeout.\n">>})
     end.
 
 
