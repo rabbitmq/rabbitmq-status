@@ -62,7 +62,7 @@ get_context(Timeout) ->
     gen_server2:call(?MODULE, get_context, Timeout).
 
 % By default, let's not wait too long. If that takes more than 1 second,
-% it's better to quickly return 408 "request tiemout" rather than hang.
+% it's better to quickly return 408 "request timeout" rather than hang.
 get_context() ->
     get_context(1000).
 
