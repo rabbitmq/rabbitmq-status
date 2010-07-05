@@ -29,6 +29,8 @@
 -export([handle_request_unauth/1]).
 -export([update/0]).
 
+-export([handle_http_request/2, handle_json_request/2]).
+
 -include_lib("rabbit_common/include/rabbit.hrl").
 
 -define(REFRESH_RATIO, 15000).
@@ -56,8 +58,13 @@
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
+get_context(Timeout) ->
+    gen_server2:call(?MODULE, get_context, Timeout).
+
+% By default, let's not wait too long. If that takes more than 1 second,
+% it's better to quickly return 408 "request timeout" rather than hang.
 get_context() ->
-    gen_server2:call(?MODULE, get_context).
+    get_context(1000).
 
 update() ->
     gen_server2:cast(?MODULE, update).
@@ -93,21 +100,22 @@ send_auth_request(Req) ->
 
 handle_request(Req) ->
     case Req:get(path) of
-        "/"      -> handle_http_request(Req);
-        "/json"  -> handle_json_request(Req);
-        "/json/" -> handle_json_request(Req);
+        "/"      -> apply_context(handle_http_request, Req);
+        "/json"  -> apply_context(handle_json_request, Req);
+        "/json/" -> apply_context(handle_json_request, Req);
         _ ->  Req:respond({404, [{"Content-Type", "text/html; charset=utf-8"}],
                                     <<"404 Not found.">>})
     end.
 
 
-handle_json_request(Req) ->
+handle_json_request(Req, Context) ->
     [Datetime, BoundTo,
         RConns, RQueues,
         FdUsed, FdTotal,
         MemUsed, MemTotal,
         ProcUsed, ProcTotal ]
-            = get_context(),
+            = Context,
+
     Json = {struct,
             [{pid, list_to_binary(os:getpid())},
              {datetime, list_to_binary(Datetime)},
@@ -130,13 +138,30 @@ handle_json_request(Req) ->
             ], Resp}).
 
 
-handle_http_request(Req) ->
+apply_context(Fun, Req) ->
+    Res = try
+	      {ok, get_context()}
+	  catch
+	      exit:{timeout, _} ->
+		  {timeout, undefined}
+	  end,
+    case Res of
+	{ok, Context} ->
+	    apply(?MODULE, Fun, [Req, Context]);
+	{timeout, _} ->
+	    Req:respond({408, [{"Refresh", status_render:print(
+					     "~p", trunc(?REFRESH_RATIO/1000))},
+			       {"Content-Type", "text/plain; charset=utf-8"}
+			      ], <<"408 Request Timeout.\n">>})
+    end.
+
+
+handle_http_request(Req, Context) ->
     [Datetime, BoundTo,
-        RConns, RQueues,
-        FdUsed, FdTotal,
-        MemUsed, MemTotal,
-        ProcUsed, ProcTotal ]
-            = get_context(),
+     RConns, RQueues,
+     FdUsed, FdTotal,
+     MemUsed, MemTotal,
+     ProcUsed, ProcTotal ] = Context,
 
     FdWarn = get_warning_level(FdUsed, FdTotal),
     MemWarn = get_warning_level(MemUsed, MemTotal),
@@ -196,17 +221,10 @@ get_used_fd(_) ->
     unknown.
 
 
-% vm_memory_monitor is available from RabbitMQ 1.7.1. This plugin should work
-% also on RabbitMQ 1.7.0. In order to make it working we need to check if
-% this api is exposed. This hack (dynamically checking the api) should be
-% removed once 1.7.1 is released.
 get_total_memory() ->
-    case erlang:function_exported(vm_memory_monitor,
-                                  get_vm_memory_high_watermark, 0) of
-        true -> vm_memory_monitor:get_vm_memory_high_watermark() *
-                vm_memory_monitor:get_total_memory();
-        false -> unknown
-    end.
+    vm_memory_monitor:get_vm_memory_high_watermark() *
+	vm_memory_monitor:get_total_memory().
+
 
 get_warning_level(Used, Total) ->
     if
