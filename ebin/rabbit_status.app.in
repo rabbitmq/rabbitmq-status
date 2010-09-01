@@ -1,6 +1,6 @@
 {application, rabbit_status,
  [{description, "RabbitMQ Status Page"},
-  {vsn, "0.01"},
+  {vsn, "%%VSN%%"},
   {modules, [
     rabbit_status,
     rabbit_status_app,

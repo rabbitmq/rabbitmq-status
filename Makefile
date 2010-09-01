@@ -1,4 +1,5 @@
 PACKAGE=rabbit_status
+APPNAME=rabbit_status
 DEPS=rabbitmq-mochiweb rabbitmq-server rabbitmq-erlang-client
 
 TEST_APPS=crypto inets mochiweb rabbit_mochiweb rabbit_status
