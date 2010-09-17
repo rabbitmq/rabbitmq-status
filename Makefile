@@ -2,10 +2,6 @@ PACKAGE=rabbit_status
 APPNAME=rabbit_status
 DEPS=rabbitmq-mochiweb rabbitmq-server rabbitmq-erlang-client
 
-TEST_APPS=crypto inets mochiweb rabbit_mochiweb rabbit_status
-TEST_ARGS=-rabbit_mochiweb port 55672
-START_RABBIT_IN_TESTS=true
-
 GENERATED_SOURCES=template
 
 include ../include.mk
