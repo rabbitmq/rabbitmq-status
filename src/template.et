@@ -83,14 +83,12 @@
   <tr class="titre">
     <th colspan="4">Overview</th>
     <th colspan="3">Messages</th>
-    <th colspan="2">Transactions</th>
     <th colspan="3">Parameters</th>
   </tr>
   <tr class="titre">
    <th>Vhost</th><th>Name</th><th>Consumers</th>
    <th>Memory</th>
    <th>Count</th><th>Msg ready</th><th>Msg unack</th>
-   <th>Count</th><th>Acks uncommited</th>
    <th>Durable</th><th>Auto delete</th><th>Arguments</th>
   </tr>
  </thead>
@@ -124,13 +122,11 @@
 
 <%@ print_queue %>
 <%? [Vhost, Name, Durable, Auto_delete, Arguments, Pid, Messages_ready,
-    Messages_unacknowledged, Messages_uncommitted, Messages,
-    Acks_uncommitted, Consumers, Transactions, Memory] = Data %>
+    Messages_unacknowledged, Messages, Consumers, Memory] = Data %>
   <tr>
    <td><% {escape, Vhost} %></td><td><% {escape, Name} %></td><td><% Consumers %></td>
    <td><% {memory, Memory} %></td>
    <td><% Messages %></td><td><% Messages_ready %></td><td><% Messages_unacknowledged %></td>
-   <td><% Transactions %></td><td><% Acks_uncommitted %></td>
    <td><% Durable %></td><td><% Auto_delete %></td><td><% {escape, Arguments} %></td>
   </tr>
 
