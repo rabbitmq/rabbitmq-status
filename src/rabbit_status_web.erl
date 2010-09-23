@@ -211,6 +211,10 @@ get_used_fd_lsof() ->
 get_used_fd() ->
     get_used_fd(os:type()).
 
+get_used_fd({unix, linux}) ->
+    {ok, Files} = file:list_dir("/proc/" ++ os:getpid() ++ "/fd"),
+    length(Files);
+
 get_used_fd({unix, Os}) when Os =:= linux
                       orelse Os =:= darwin
                       orelse Os =:= freebsd ->
