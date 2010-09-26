@@ -1,0 +1,6 @@
+~$
+\.beam$
+^dist/
+^deps/
+^deps.mk$
+^ebin/rabbit_status.app$
