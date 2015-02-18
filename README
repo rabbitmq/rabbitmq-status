@@ -1,6 +1,3 @@
-/!\ Repository moved to GitHub: https://github.com/rabbitmq/rabbitmq-status
-    This is a stale read-only repository.
-
 *** NOTE: This plugin has been superseded by the rabbitmq-management plugin
     and is no longer maintained. ***
 
