@@ -1,4 +1,4 @@
-%% @author Yariv Sadan <yarivsblog@gmail.com> [http://yarivsblog.com]
+%% @author Yariv Sadan <yarivsblog@gmail.com> [https://yarivsblog.com]
 %% @version 0.9.3
 %% @copyright Yariv Sadan 2006-2007
 %%
@@ -139,7 +139,7 @@
 %% SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 -module(erltl).
--author("Yariv Sadan (yarivsblog@gmail.com, http://yarivsblog.com)").
+-author("Yariv Sadan (yarivsblog@gmail.com, https://yarivsblog.com)").
 -export([compile/1, compile/2, forms_for_file/1, 
 	 forms_for_file/2, forms_for_data/2, forms_for_data/3]).
 
