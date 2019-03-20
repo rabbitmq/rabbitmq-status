@@ -3,15 +3,15 @@
 
 This is a normal RabbitMQ plugin. For detailed installation instructions
 go to:
-        http://www.rabbitmq.com/admin-guide.html#installing-plugins
+        https://www.rabbitmq.com/admin-guide.html#installing-plugins
 
 A summary:
 
-    hg clone http://hg.rabbitmq.com/rabbitmq-public-umbrella/
+    hg clone https://hg.rabbitmq.com/rabbitmq-public-umbrella/
     cd rabbitmq-public-umbrella
     make co
     make 
-    hg clone http://hg.rabbitmq.com/rabbitmq-status/
+    hg clone https://hg.rabbitmq.com/rabbitmq-status/
     cd rabbitmq-status
     make
 
